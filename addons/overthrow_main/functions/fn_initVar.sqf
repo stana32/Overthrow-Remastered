@@ -23,6 +23,8 @@ OT_ACEremoveActionConfirm = [
 	10
 ] call ace_interact_menu_fnc_createAction;
 
+OT_hasACE = true;
+
 //Find markers
 OT_ferryDestinations = [];
 OT_NATO_control = [];
@@ -49,7 +51,7 @@ OT_tutorialMissions pushback (compileFinal preprocessFileLineNumbers "\overthrow
 OT_tutorialMissions pushback (compileFinal preprocessFileLineNumbers "\overthrow_main\missions\tutorial\tut_Drugs.sqf");
 OT_tutorialMissions pushback (compileFinal preprocessFileLineNumbers "\overthrow_main\missions\tutorial\tut_Economy.sqf");
 
-// inside mission
+// Load mission data
 call compile preprocessFileLineNumbers "data\names.sqf";
 call compile preprocessFileLineNumbers "data\towns.sqf";
 call compile preprocessFileLineNumbers "data\airports.sqf";
@@ -121,7 +123,6 @@ OT_rankXP = [100,250,500,1000,4000,10000,100000];
 
 OT_adminMode = false;
 OT_deepDebug = false;
-OT_hasAce = true;
 OT_allIntel = [];
 OT_notifies = [];
 
@@ -129,7 +130,9 @@ OT_NATO_HQPos = [0,0,0];
 
 OT_fastTime = true; //When true, 1 day will last 6 hrs real time
 OT_spawnDistance = 1200;
-OT_spawnCivPercentage = 0.1;
+if (isNil "OT_spawnCivPercentage") then {
+	OT_spawnCivPercentage = 0.03;
+};
 OT_spawnVehiclePercentage = 0.04;
 OT_standardMarkup = 0.2; //Markup in shops is calculated from this
 OT_randomSpawnTown = false; //if true, every player will start in a different town, if false, all players start in the same town (Multiplayer only)
@@ -146,7 +149,7 @@ OT_ammo_50cal = "OT_ammo50cal";
 
 OT_item_wrecks = ["Land_Wreck_HMMWV_F","Land_Wreck_Skodovka_F","Land_Wreck_Truck_F","Land_Wreck_Car2_F","Land_Wreck_Car_F","Land_Wreck_Hunter_F","Land_Wreck_Offroad_F","Land_Wreck_Offroad2_F","Land_Wreck_UAZ_F","Land_Wreck_Truck_dropside_F"]; //rekt
 
-OT_NATOwait = 30; //Half the Average time between NATO orders (x 10 seconds)
+OT_NATOwait = 300; //Half the Average time between NATO orders
 OT_CRIMwait = 500; //Half the Average time between crim changes
 OT_jobWait = 60;
 
@@ -267,6 +270,18 @@ OT_shops = _allShops apply {configName _x};
 private _allCarShops = "getNumber ( _x >> ""ot_isCarDealer"" ) isEqualTo 1" configClasses ( configFile >> "CfgVehicles" );
 OT_carShops = _allCarShops apply {configName _x};
 
+//Calculate prices
+//First, load the hardcoded prices from data/prices.sqf
+if(isServer) then {
+	OT_loadedPrices = [];
+	call compile preprocessFileLineNumbers "\overthrow_main\data\prices.sqf";
+	{
+		OT_loadedPrices pushback (_x select 0);
+		cost setVariable[_x select 0,_x select 1, true];
+	}forEach(OT_priceData);
+	OT_priceData = []; //free memory
+};
+
 private _allVehs = "
     ( getNumber ( _x >> ""scope"" ) isEqualTo 2
     &&
@@ -331,7 +346,7 @@ private _allHelis = "
 		_plastic = 6;
 	};
 
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable _cls}) then {
 		cost setVariable [_cls,[_cost,0,_steel,_plastic],true];
 	};
 
@@ -348,7 +363,7 @@ if(isServer) then {
 
 {
 	private _cls = _x select 0;
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable _cls}) then {
 		cost setVariable [_cls,[_x select 1,_x select 2,_x select 3,_x select 4],true];
 	};
 	if(_cls in OT_vehTypes_civ) then {
@@ -356,7 +371,6 @@ if(isServer) then {
 	};
 	OT_allVehicles pushBack _cls;
 }foreach(OT_vehicles);
-
 
 private _allWeapons = "
     ( getNumber ( _x >> ""scope"" ) isEqualTo 2
@@ -464,7 +478,7 @@ OT_allGoggles = [];
 			};
 			OT_allGlasses pushback _name;
 		};
-		if(isServer && _name != "None") then {
+		if(isServer && _name != "None" && isNil {cost getVariable _name}) then {
 			cost setVariable [_name,[_m*3,0,0,ceil(_m*0.5)],true];
 		};
 	};
@@ -482,10 +496,7 @@ OT_allGoggles = [];
 	private _weapons = [];
 	private _blacklist = ["Throw","Put","NLAW_F"];
 
-	private _all = "
-	    ( getNumber ( _x >> ""scope"" ) isEqualTo 2 )
-		and ( getText ( _x >> ""faction"" ) isEqualTo """ + _name + """ )
-	" configClasses ( configFile >> "cfgVehicles" );
+	private _all = format["(getNumber( _x >> ""scope"" ) isEqualTo 2 ) && (getText( _x >> ""faction"" ) isEqualTo '%1')",_name] configClasses ( configFile >> "cfgVehicles" );
 	{
 		private _cls = configName _x;
 		if(_cls isKindOf "CAManBase") then {
@@ -630,7 +641,7 @@ OT_allGoggles = [];
 		};
 		[]
 	}) params [["_cost", 500], ["_steel", 2]];
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable _name}) then {
 		cost setVariable [_name,[_cost,0,_steel,0],true];
 	};
 } foreach (_allWeapons);
@@ -649,7 +660,7 @@ OT_allLegalClothing = [];
 	if((_name == "V_RebreatherIA" || _side == "C" || _side == "I") && (_c select (count _c - 1) != "VR")) then {
 		OT_allLegalClothing pushback _name;
 	};
-	if (isServer) then {
+	if (isServer && isNil {cost getVariable _name}) then {
 		cost setVariable [_name,[_cost,0,0,1],true];
 	};
 } foreach (_allUniforms);
@@ -662,7 +673,7 @@ OT_allLegalClothing = [];
 	}else{
 		OT_allHats pushback _name;
 	};
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable _name}) then {
 		cost setVariable [_name,[_cost,0,1,0],true];
 	};
 } foreach (_allHelmets);
@@ -705,7 +716,7 @@ OT_allLegalClothing = [];
 		}else{
 			OT_allMagazines pushback _name;
 		};
-		if(isServer) then {
+		if(isServer && isNil {cost getVariable _name}) then {
 			cost setVariable [_name,[_cost,0,_steel,_plastic],true];
 		};
 	};
@@ -719,13 +730,13 @@ OT_allLegalClothing = [];
 	};
 	OT_allDetonators pushback _name;
 	OT_detonators pushback [_name,_m,0,0.1,0];
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable _name}) then {
 		cost setVariable [_name,[_m,0,0.1,0],true];
 	};
 } foreach (_allDetonators);
 
 if(isServer) then {
-	//Remainding vehicle costs
+	//Remaining vehicle costs
 	private _cfgVeh = configFile >> "cfgVehicles";
 	{
 		private _name = configName _x;
@@ -745,8 +756,9 @@ if(isServer) then {
 
 				if(_name isKindOf "Air") then {_cost = _cost * 2};
 			};
-
-			cost setVariable [_name,[_cost,0,_steel,_plastic],true];
+			if(isNil {cost getVariable _name}) then {
+				cost setVariable [_name,[_cost,0,_steel,_plastic],true];
+			};
 		};
 	} foreach (_allVehicles);
 };
@@ -764,7 +776,7 @@ OT_attachments = [];
 		//Suppressors
 		_cost = 350;
 	};
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable _name}) then {
 		cost setVariable [_name,[_cost,0,0,0.25],true];
 	};
 	OT_allAttachments pushback _name;
@@ -785,7 +797,7 @@ OT_attachments = [];
 	}foreach(_allModes);
 
 	OT_allOptics pushback _name;
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable _name}) then {
 		cost setVariable [_name,[_cost,0,0,0.5],true];
 	};
 } foreach (_allOptics);
@@ -797,27 +809,23 @@ if(isServer) then {
 	cost setVariable ["WAGE",[5,0,0,0],true];
 	cost setVariable [OT_item_UAV,[200,0,0,1],true];
 	cost setVariable ["FUEL",[5,0,0,0],true];
-
-	//Drug prices
-	cost setVariable ["OT_Ganja",[100,0,0,0],true];
-	cost setVariable ["OT_Blow",[250,0,0,0],true];
 };
 //populate the cost gamelogic with the above data so it can be accessed quickly
 {
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable (_x select 0)}) then {
 		cost setVariable [_x select 0,_x select [1,4],true];
 	};
 	OT_allBackpacks pushBack (_x select 0);
 }foreach(OT_backpacks);
 {
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable (_x select 0)}) then {
 		cost setVariable [_x select 0,_x select [1,4],true];
 	};
 	OT_allStaticBackpacks pushBack (_x select 0);
 }foreach(OT_staticBackpacks);
 
 {
-	if(isServer) then {
+	if(isServer && isNil {cost getVariable (_x select 0)}) then {
 		cost setVariable [_x select 0,_x select [1,4],true];
 	};
 	OT_allBoats pushBack (_x select 0);
@@ -829,7 +837,7 @@ OT_staticWeapons = ["I_Mortar_01_F","I_static_AA_F","I_static_AT_F","I_GMG_01_F"
 OT_miscables = ["ACE_Wheel","ACE_Track","Land_PortableLight_double_F","Land_PortableLight_single_F","Land_Camping_Light_F","Land_PortableHelipadLight_01_F","PortableHelipadLight_01_blue_F",
 "PortableHelipadLight_01_green_F","PortableHelipadLight_01_red_F","PortableHelipadLight_01_white_F","PortableHelipadLight_01_yellow_F","Land_Campfire_F","ArrowDesk_L_F",
 "ArrowDesk_R_F","ArrowMarker_L_F","ArrowMarker_R_F","Pole_F","Land_RedWhitePole_F","RoadBarrier_F","RoadBarrier_small_F","RoadCone_F","RoadCone_L_F","Land_VergePost_01_F",
-"TapeSign_F","Land_WheelChock_01_F","Land_Sleeping_bag_F","Land_Sleeping_bag_blue_F","Land_WoodenLog_F","FlagChecked_F","FlagSmall_F","Land_LandMark_F","Land_Bollard_01_F"];
+"TapeSign_F","Land_LampDecor_F","Land_WheelChock_01_F","Land_Sleeping_bag_F","Land_Sleeping_bag_blue_F","Land_WoodenLog_F","FlagChecked_F","FlagSmall_F","Land_LandMark_F","Land_Bollard_01_F"];
 
 //Stuff you can build
 OT_Buildables = [
@@ -840,12 +848,12 @@ OT_Buildables = [
 		["Land_CampingChair_V2_F",[-1.44146,-1.7173,0],223.485,1,0,[],"","",true,false],
 		["Land_ClutterCutter_large_F",[0,0,0],0,1,0,[],"","",true,false]
 	],"OT_fnc_initTrainingCamp",true,"Allows training of recruits && hiring of mercenaries"],
-	["Bunkers",500,["Land_BagBunker_01_small_green_F","Land_HBarrier_01_big_tower_green_F","Land_HBarrier_01_tower_green_F"],"",false,"Small Defensive Structures. Press space to change type."],
+	["Bunkers",500,["Land_Hangar_F","Land_BagBunker_Tower_F","Land_BagBunker_Small_F","Land_HBarrierTower_F","Land_Bunker_01_blocks_3_F","Land_Bunker_01_blocks_1_f","Land_Bunker_01_big_F","Land_Bunker_01_small_F","Land_Bunker_01_tall_F","Land_Bunker_01_HQ_F","Land_BagBunker_01_small_green_F","Land_HBarrier_01_big_tower_green_F","Land_HBarrier_01_tower_green_F"],"",false,"Small Defensive Structures. CONTAINS TEST OBJECTS. Press space to change type."],
 	["Walls",200,["Land_ConcreteWall_01_l_8m_F","Land_ConcreteWall_01_l_gate_F","Land_HBarrier_01_wall_6_green_F","Land_HBarrier_01_wall_4_green_F","Land_HBarrier_01_wall_corner_green_F"],"",false,"Stop people (or tanks) from getting in. Press space to change type."],
 	["Helipad",50,["Land_HelipadCircle_F","Land_HelipadCivil_F","Land_HelipadRescue_F","Land_HelipadSquare_F"],"",false,"Informs helicopter pilots of where might be a nice place to land"],
-	["Observation Post",800,["Land_Cargo_Patrol_V4_F"],"OT_fnc_initObservationPost",false,"Includes unarmed personnel to keep an eye over the area && provide intel on enemy positions"],
+	["Observation Post",800,["Land_Cargo_Patrol_V4_F"],"",false,"A small tower, can garrison a static HMG/GMG in it"],
 	["Barracks",5000,[OT_barracks],"",false,"Allows recruiting of squads"],
-	["Guard Tower",5000,["Land_Cargo_Tower_V4_F"],"",false,"It's a huge tower, what else do you need?."],
+	["Guard Tower",5000,["Land_Cargo_Tower_V4_F","Land_Cargo_Tower_V3_F","Land_Cargo_Tower_V2_F","Land_Cargo_Tower_V1_F"],"",false,"It's a huge tower, what else do you need?."],
 	["Hangar",1200,["Land_Airport_01_hangar_F"],"",false,"A big empty building, could probably fit a plane inside it."],
 	["Workshop",1000,[
 		["Land_Cargo_House_V4_F",[0,0,0],0,1,0,[],"","",true,false],
@@ -872,9 +880,9 @@ OT_Buildables = [
 
 //Items you can place
 OT_Placeables = [
-	["Sandbags",20,["Land_BagFence_01_long_green_F","Land_BagFence_01_short_green_F","Land_BagFence_01_round_green_F","Land_BagFence_01_corner_green_F","Land_BagFence_01_end_green_F"],[0,3,0.8],"Bags filled with lots of sand. Apparently this can stop bullets or something?"],
-	["Camo Nets",40,["CamoNet_ghex_F","CamoNet_ghex_open_F","CamoNet_ghex_big_F"],[0,7,2],"Large && terribly flimsy structures that may or may not obscure your forces from airborne units."],
-	["Barriers",60,["Land_HBarrier_01_line_5_green_F","Land_HBarrier_01_line_3_green_F","Land_HBarrier_01_line_1_green_F"],[0,4,1.2],"Really big sandbags, basically."],
+	["Sandbags",20,["Land_BagFence_Short_F","Land_BagFence_Round_F","Land_BagFence_Long_F","Land_BagFence_End_F","Land_BagFence_Corner_F","Land_BagFence_01_long_green_F","Land_BagFence_01_short_green_F","Land_BagFence_01_round_green_F","Land_BagFence_01_corner_green_F","Land_BagFence_01_end_green_F"],[0,3,0.8],"Bags filled with lots of sand. Apparently this can stop bullets or something?"],
+	["Camo Nets",40,["Land_MedicalTent_01_white_generic_open_F","Land_MedicalTent_01_MTP_open","Land_TentHanger_V1_F","CamoNet_INDP_open_F","CamoNet_INDP_F","CamoNet_ghex_F","CamoNet_ghex_open_F","CamoNet_ghex_big_F"],[0,7,2],"Large && terribly flimsy structures that may or may not obscure your forces from airborne units."],
+	["Barriers",60,["Land_HBarrier_1_F","Land_HBarrier_3_F","Land_HBarrier_5_F","Land_HBarrier_Big_F","Land_HBarrierWall_corner_F","Land_HBarrier_01_line_5_green_F","Land_HBarrier_01_line_3_green_F","Land_HBarrier_01_line_1_green_F"],[0,4,1.2],"Really big sandbags, basically."],
 	["Map",30,[OT_item_Map],[0,2,1.2],"Use these to save your game, change options or check town info."],
 	["Safe",50,[OT_item_Safe],[0,2,0.5],"Store && retrieve money"],
 	["Misc",30,OT_miscables,[0,3,1.2],"Various other items, including spare wheels && lights"]
@@ -882,20 +890,20 @@ OT_Placeables = [
 
 //People you can recruit, && squads are composed of
 OT_Recruitables = [
-	["I_soldier_F","AssaultRifle","",200,"",""], //0
-	["I_soldier_AR_F","MachineGun","",200,"",""], //1
-	["I_Soldier_LAT_F","AssaultRifle","launch_RPG7_F",200,"",""], //2
-	["I_Soldier_M_F","AssaultRifle","",500,"",""], //3
-	["I_Sniper_F","SniperRifle","",1800,"U_B_T_FullGhillie_tna_F","Binocular"], //4
-	["I_Spotter_F","AssaultRifle","",500,"U_B_T_FullGhillie_tna_F","Binocular"], //5
-	["I_Soldier_SL_F","AssaultRifle","",200,"","Binocular"], //6
-	["I_Soldier_TL_F","AssaultRifle","",200,"U_I_C_Soldier_Para_2_F","Binocular"], //7
-	["I_Medic_F","AssaultRifle","",200,"",""], //8
-	["I_Soldier_AT_F","AssaultRifle","launch_I_Titan_short_F",200,"",""], //9
-	["I_Soldier_AA_F","AssaultRifle","launch_I_Titan_F",200,"",""], //10
-	["I_Soldier_AAT_F","AssaultRifle","",200,"",""], //11
-	["I_Soldier_AAA_F","AssaultRifle","",200,"",""], //12
-	["I_soldier_GL_F","GrenadeLauncher","",200,"",""] //13
+	["I_soldier_F","AssaultRifle",[],200,"",""], //0
+	["I_soldier_AR_F","MachineGun",[],200,"",""], //1
+	["I_Soldier_LAT_F","AssaultRifle",["launch_RPG7_F"],200,"",""], //2
+	["I_Soldier_M_F","AssaultRifle",[],500,"",""], //3
+	["I_Sniper_F","SniperRifle",[],1800,"U_B_T_FullGhillie_tna_F","Binocular"], //4
+	["I_Spotter_F","AssaultRifle",[],500,"U_B_T_FullGhillie_tna_F","Binocular"], //5
+	["I_Soldier_SL_F","AssaultRifle",[],200,"","Binocular"], //6
+	["I_Soldier_TL_F","AssaultRifle",[],200,"U_I_C_Soldier_Para_2_F","Binocular"], //7
+	["I_Medic_F","AssaultRifle",[],200,"",""], //8
+	["I_Soldier_AT_F","AssaultRifle",["launch_I_Titan_short_F","launch_B_Titan_short_F","launch_B_Titan_short_tna_F"],200,"",""], //9
+	["I_Soldier_AA_F","AssaultRifle",["launch_I_Titan_F","launch_B_Titan_F","launch_B_Titan_tna_F"],200,"",""], //10
+	["I_Soldier_AAT_F","AssaultRifle",[],200,"",""], //11
+	["I_Soldier_AAA_F","AssaultRifle",[],200,"",""], //12
+	["I_soldier_GL_F","GrenadeLauncher",[],200,"",""] //13
 ];
 
 OT_Squadables = [
@@ -935,10 +943,9 @@ OT_noCopyMags = ["ACE_PreloadedMissileDummy"];
 
 OT_autoSave_time = 0;
 OT_autoSave_last_time = (10*60);
+OT_cleanup_civilian_loop = (5*60);
 zeusToggle = true;
 
 if(isServer) then {
-	cost setVariable ["V_RebreatherIA",[75,0,0,1],true];
-	cost setVariable ["ToolKit",[80,0,0,0],true];
 	missionNamespace setVariable ["OT_varInitDone",true,true];
 };

@@ -26,7 +26,7 @@ if(isMultiplayer) then {
 
 private _grpUnits = groupSelectedUnits player;
 {
-	if (!(isPlayer _x) && { side _x isEqualTo resistance }) then {
+	if (!(isPlayer _x) && {(side _x isEqualTo resistance) || captive _x}) then {
 		private _veh = vehicle _x;
 		if(_veh isEqualTo _x) then {
 			private _color = [[0,0.2,0,1],[0,0.5,0,1]] select captive _x;
@@ -79,6 +79,7 @@ private _grpUnits = groupSelectedUnits player;
 }foreach(allunits);
 
 if (!visibleGPS) then {
+	private _mortars = spawner getVariable ["NATOmortars",[]];
 	{
 		_mapCtrl drawIcon [
 			"\A3\ui_f\data\map\markers\nato\b_mortar.paa",
@@ -89,7 +90,7 @@ if (!visibleGPS) then {
 			0,
 			""
 		];
-	}foreach(spawner getVariable ["NATOmortars",[]]);
+	}foreach(_mortars);
 	if((vehicle player) isKindOf ["Air",_cfgVeh]) then {
 		private _abandoned = server getVariable ["NATOabandoned",[]];
 		{
@@ -268,7 +269,7 @@ if(_scale <= 0.16) then {
 			}foreach(server getVariable [format["activehardwarein%1",_x],[]]);
 		};
 	}foreach(_towns);
-	
+
 	if (!visibleGPS) then {
 		{
 			if ((typeof _x != "B_UAV_AI") && !(_x getVariable ["OT_looted",false])) then {

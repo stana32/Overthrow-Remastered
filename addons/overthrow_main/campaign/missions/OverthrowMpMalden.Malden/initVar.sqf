@@ -1,12 +1,12 @@
 
-OT_nation = "Altis";
-OT_saveName = "Overthrow.altis.001";
+OT_nation = "Malden";
+OT_saveName = "Overthrow.malden.001";
 
-OT_tutorial_backstoryText = "Welcome to Altis, the jewel of the Mediterranean. The year is 2040, it has been five years since NATO pushed the AAF forces out of the nation and no efforts have been made to re-establish local leadership and restore the once great economy of Altis. A protest in the capital city Pyrgos turned sour last night when the leader of the 'Free Altis' movement was gunned down by an unknown assailant.";
-OT_startDate = [2040,7,14,8,00];
+OT_tutorial_backstoryText = "Welcome to Malden, called the “Gibraltar of the North Sea” by many. This group of islands has been occupied by the French since the 19th century and has become one of NATO's primary strongholds in the North Sea. Never considered a sovereign part of France by the government, Malden has never had any representation in French politics. Since the global financial crisis of 2008 this remote island has experienced great hardship and rising unemployment levels which lately has erupted into civil unrest and protests, especially in the less populated western towns.";
+OT_startDate = [2035,7,14,8,00];
 
-OT_startCameraPos = [11646.6,6406.52,2];
-OT_startCameraTarget = [13808.2,6387.16,0];
+OT_startCameraPos = [2717.66,7298.14,15];
+OT_startCameraTarget = [3016.03,7171.53,0];
 
 //Used to control updates and persistent save compatability. When these numbers go up, that section will be reinitialized on load if required. (ie leave them alone)
 OT_economyVersion = 2;
@@ -18,15 +18,15 @@ OT_spawnFaction = "IND_G_F"; //This faction will have a rep in spawn town
 
 OT_flag_NATO = "Flag_NATO_F";
 OT_flag_CRIM = "Flag_Syndikat_F";
-OT_flag_IND = "Flag_Altis_F";
-OT_flagImage = "\A3\ui_f\data\map\markers\flags\Altis_ca.paa";
-OT_flagMarker = "flag_Tanoa";
+OT_flag_IND = "Flag_Green_F";
+OT_flagImage = "\overthrow_main\flags\flag_malden.paa";
+OT_flagMarker = "flag_Malden";
 
 OT_populationMultiplier = 0.5; //Used to tweak populations per map
 
 //Interactable items that spawn in your house
 OT_item_Storage = "B_CargoNet_01_ammo_F"; //Your spawn ammobox
-OT_item_Map = "Mapboard_altis_F";
+OT_item_Map = "Mapboard_Malden_F";
 OT_item_Tent = "Land_TentDome_F";
 OT_item_Safe = "Land_MetalCase_01_small_F";
 
@@ -37,12 +37,12 @@ OT_allFarmAnimals = ["Hen_random_F","Cock_random_F","Sheep_random_F"];
 OT_allVillageAnimals = ["Hen_random_F","Cock_random_F"];
 OT_allTownAnimals = ["Alsatian_Random_F","Fin_random_F"];
 
-OT_fuelPumps = ["Land_FuelStation_02_pump_F","Land_FuelStation_01_pump_F","Land_fs_feed_F","Land_FuelStation_Feed_F"];
+OT_fuelPumps = ["Land_FuelStation_02_pump_F","Land_FuelStation_01_pump_F","Land_fs_feed_F","Land_FuelStation_Feed_F","Land_FuelStation_01_pump_malevil_F"];
 
 OT_churches = ["Land_Church_03_F","Land_Church_01_F","Land_Church_02_F","Land_Temple_Native_01_F"];
 
-OT_language_local = "LanguageGRE_F";
-OT_identity_local = "Head_Greek";
+OT_language_local = "LanguageENGFRE_F";
+OT_identity_local = "Head_Euro";
 
 OT_language_western = "LanguageENG_F";
 OT_identity_western = "Head_Euro";
@@ -122,6 +122,7 @@ OT_NATO_Vehicles_CASDrone = "B_UAV_02_CAS_F";
 OT_NATO_Vehicles_AirSupport = ["B_Heli_Attack_01_F"];
 OT_NATO_Vehicles_AirSupport_Small = ["B_Heli_Light_01_armed_F"];
 OT_NATO_Vehicles_GroundSupport = ["B_T_MRAP_01_gmg_F","B_T_MRAP_01_hmg_F","B_T_LSV_01_armed_F"];
+OT_NATO_Vehicles_TankSupport = ["B_MBT_01_TUSK_F","B_MBT_01_cannon_F"];
 OT_NATO_Vehicles_Convoy = ["B_UGV_01_rcws_F","B_T_MRAP_01_hmg_F","B_T_LSV_01_armed_F","B_T_LSV_01_armed_F","B_T_LSV_01_armed_F"];
 OT_NATO_Vehicles_AirWingedSupport = ["B_Plane_CAS_01_F"];
 OT_NATO_Vehicle_AirTransport_Small = "B_Heli_Transport_01_camo_F";

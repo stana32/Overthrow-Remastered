@@ -22,7 +22,7 @@ private _cc = 0;
 	if(_key == "players") then {
 		{
 			_x params ["_subkey","_subval"];
-			if!(toLower (_subkey select [0,4]) in ["ace_","cba_","bis_"]) then {
+			if(!(toLower (_subkey select [0,4]) in ["ace_","cba_","bis_"]) && {(_subkey select [0,9]) != "seencache"}) then {
 				players_NS setVariable [_subkey,_subval,true];
 			};
 		}foreach(_val);
@@ -70,8 +70,10 @@ private _cc = 0;
 	if(_key == "warehouse") then {
 		{
 			_x params ["_subkey","_subval"];
-			if!(toLower (_subkey select [0,4]) in ["cba_","bis_"]) then {
-				warehouse setVariable [_subkey,_subval,true];
+			if !(isNil {_subval}) then {
+				if!(toLower (_subkey select [0,4]) in ["cba_","bis_"] ) then {
+					warehouse setVariable [_subkey,_subval,true];
+				};
 			};
 		}foreach(_val);
 		_set = false;
@@ -96,11 +98,14 @@ private _cc = 0;
 					_name = _x select 5;
 				};
 				_veh = createVehicle [_type, _pos, [], 0, "CAN_COLLIDE"];
+				_veh enableDynamicSimulation true;
+				/*
 				if !(_simulation) then {
 					_veh enableSimulationGlobal false;
 				}else{
 					_veh enableDynamicSimulation true;
 				};
+				*/
 
 				if(count _x > 7) then {
 					(_x select 7) params ["_fuel","_dmg"];
